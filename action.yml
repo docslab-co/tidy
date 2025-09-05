@@ -1,0 +1,25 @@
+name: "Tidy"
+description: "Check for typos in PRs"
+author: "Dan Rowden // DocsLab"
+
+inputs:
+  files:
+    description: "Files or directories to check. If not set, check the whole repo."
+    required: false
+    default: "."
+  only_changed:
+    description: "If true, only check changed files in the PR. If false, check the whole repo."
+    required: false
+    default: "true"
+  base_branch:
+    description: "Branch to diff against when only_changed is enabled."
+    required: false
+    default: "main"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+
+branding:
+  icon: "book"
+  color: "blue"
