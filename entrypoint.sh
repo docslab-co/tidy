@@ -1,13 +1,14 @@
 #!/bin/bash
 set -e
 
-echo "::group::📑 Starting Tidy"
-
 CONFIG_FILE=".tidyconfig.yml"
 FILES="."
 IGNORE_ARGS=""
-ONLY_CHANGED="false"
+ONLY_CHANGED="true"    # Default is now true
 BASE_BRANCH="main"
+
+# --- Fix Git dubious ownership warning ---
+git config --global --add safe.directory /github/workspace
 
 # --- Parse config file ---
 if [ -f "$CONFIG_FILE" ]; then
@@ -54,9 +55,6 @@ if [ -n "$INPUT_BASE_BRANCH" ]; then
   BASE_BRANCH="$INPUT_BASE_BRANCH"
 fi
 
-# Allow git to run in the GitHub Actions workspace
-git config --global --add safe.directory /github/workspace
-
 # --- Determine files to check ---
 if [ "$ONLY_CHANGED" = "true" ]; then
   echo "🔄 Only checking changed files vs base branch: $BASE_BRANCH"
@@ -67,26 +65,25 @@ if [ "$ONLY_CHANGED" = "true" ]; then
 
   if [ -z "$CHANGED_FILES" ]; then
     echo "✅ No changed files to check"
-    echo "::endgroup::"
     exit 0
   fi
 
   FILES="$CHANGED_FILES"
 fi
 
-echo "🔍 Running spell check on: $FILES"
+# --- Debug: list files being checked ---
+echo "🔍 Files to check:"
+echo "$FILES"
 
-# --- Run typos quietly ---
-OUTPUT=$(typos $FILES $IGNORE_ARGS --format json 2>/dev/null || true)
+# --- Run typos ---
+OUTPUT=$(typos $FILES $IGNORE_ARGS --format json || true)
 
 if [ -z "$OUTPUT" ]; then
   echo "✅ No typos found"
-  echo "::endgroup::"
   exit 0
 fi
 
 # --- Convert to GitHub annotations ---
 echo "$OUTPUT" | jq -r '.[] | "::error file=\(.path),line=\(.line),col=\(.column)::\(.typo) → \(.corrections | join(", "))"'
 
-echo "::endgroup::"
 exit 1
